@@ -34,6 +34,55 @@ type receiptReader interface {
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
+// minGasLimitQuerier is the bridge query surface required for ETH min gas checks.
+type minGasLimitQuerier interface {
+	// GetMessageMinGasLimit returns minimum gas for message data length.
+	GetMessageMinGasLimit(opts *bind.CallOpts, dataLength *big.Int) (uint32, error)
+}
+
+// ETHGasLimitResolution captures requested, minimum, and effective ETH message gas values.
+type ETHGasLimitResolution struct {
+	// RequestedGasLimit is the user-provided gas limit input.
+	RequestedGasLimit uint32
+	// MinGasLimit is bridge minimum gas for current message calldata length.
+	MinGasLimit uint32
+	// EffectiveGasLimit is the gas limit used for sendMessage after adjustment.
+	EffectiveGasLimit uint32
+	// Adjusted indicates whether requested gas was increased to satisfy minimum.
+	Adjusted bool
+}
+
+// ResolveETHGasLimit queries source bridge min gas and auto-bumps unsafe requested values.
+func ResolveETHGasLimit(
+	ctx context.Context,
+	srcBridge minGasLimitQuerier,
+	data []byte,
+	requestedGasLimit uint32,
+) (ETHGasLimitResolution, error) {
+	if srcBridge == nil {
+		return ETHGasLimitResolution{}, fmt.Errorf("nil source bridge")
+	}
+
+	minGasLimit, err := srcBridge.GetMessageMinGasLimit(
+		&bind.CallOpts{Context: ctx},
+		new(big.Int).SetUint64(uint64(len(data))),
+	)
+	if err != nil {
+		return ETHGasLimitResolution{}, fmt.Errorf("get message min gas limit: %w", err)
+	}
+
+	resolution := ETHGasLimitResolution{
+		RequestedGasLimit: requestedGasLimit,
+		MinGasLimit:       minGasLimit,
+		EffectiveGasLimit: requestedGasLimit,
+	}
+	if requestedGasLimit < minGasLimit {
+		resolution.EffectiveGasLimit = minGasLimit
+		resolution.Adjusted = true
+	}
+	return resolution, nil
+}
+
 // SendETHRequest captures parameters for bridge.sendMessage ETH flow.
 type SendETHRequest struct {
 	// From is the source account sending the bridge message.

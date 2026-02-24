@@ -1,9 +1,12 @@
 package bridge
 
 import (
+	"context"
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -104,5 +107,78 @@ func TestBuildNFTAmounts(t *testing.T) {
 	_, err = BuildNFTAmounts(ids, []*big.Int{big.NewInt(1)}, false)
 	if err == nil {
 		t.Fatalf("expected mismatch error")
+	}
+}
+
+// fakeMinGasBridge mocks getMessageMinGasLimit queries for gas limit resolution tests.
+type fakeMinGasBridge struct {
+	// MinGasLimit is the mocked minimum gas limit result.
+	MinGasLimit uint32
+	// Err is the optional mocked call error.
+	Err error
+	// LastDataLen records the last data length argument.
+	LastDataLen uint64
+}
+
+// GetMessageMinGasLimit implements the bridge min gas query for tests.
+func (f *fakeMinGasBridge) GetMessageMinGasLimit(_ *bind.CallOpts, dataLength *big.Int) (uint32, error) {
+	f.LastDataLen = dataLength.Uint64()
+	if f.Err != nil {
+		return 0, f.Err
+	}
+	return f.MinGasLimit, nil
+}
+
+// TestResolveETHGasLimit_AdjustsWhenRequestedBelowMin verifies automatic gas bumping.
+func TestResolveETHGasLimit_AdjustsWhenRequestedBelowMin(t *testing.T) {
+	mockBridge := &fakeMinGasBridge{MinGasLimit: 806656}
+	res, err := ResolveETHGasLimit(context.Background(), mockBridge, []byte{0x01, 0x02}, 200000)
+	if err != nil {
+		t.Fatalf("ResolveETHGasLimit error: %v", err)
+	}
+	if res.MinGasLimit != 806656 {
+		t.Fatalf("unexpected min gas limit: %d", res.MinGasLimit)
+	}
+	if res.EffectiveGasLimit != 806656 {
+		t.Fatalf("unexpected effective gas limit: %d", res.EffectiveGasLimit)
+	}
+	if !res.Adjusted {
+		t.Fatalf("expected gas limit to be adjusted")
+	}
+	if mockBridge.LastDataLen != 2 {
+		t.Fatalf("unexpected data length: %d", mockBridge.LastDataLen)
+	}
+}
+
+// TestResolveETHGasLimit_UsesRequestedWhenAtOrAboveMin verifies no adjustment is made when safe.
+func TestResolveETHGasLimit_UsesRequestedWhenAtOrAboveMin(t *testing.T) {
+	mockBridge := &fakeMinGasBridge{MinGasLimit: 806656}
+	res, err := ResolveETHGasLimit(context.Background(), mockBridge, nil, 1000000)
+	if err != nil {
+		t.Fatalf("ResolveETHGasLimit error: %v", err)
+	}
+	if res.MinGasLimit != 806656 {
+		t.Fatalf("unexpected min gas limit: %d", res.MinGasLimit)
+	}
+	if res.EffectiveGasLimit != 1000000 {
+		t.Fatalf("unexpected effective gas limit: %d", res.EffectiveGasLimit)
+	}
+	if res.Adjusted {
+		t.Fatalf("did not expect gas limit adjustment")
+	}
+}
+
+// TestResolveETHGasLimit_Error verifies contract query failures are returned.
+func TestResolveETHGasLimit_Error(t *testing.T) {
+	mockBridge := &fakeMinGasBridge{Err: errors.New("rpc failed")}
+	if _, err := ResolveETHGasLimit(context.Background(), mockBridge, nil, 1000000); err == nil {
+		t.Fatalf("expected query error")
+	}
+}
+
+// TestResolveETHGasLimit_NilBridge verifies nil bridge dependency is rejected.
+func TestResolveETHGasLimit_NilBridge(t *testing.T) {
+	if _, err := ResolveETHGasLimit(context.Background(), nil, nil, 1000000); err == nil {
+		t.Fatalf("expected nil bridge error")
 	}
 }

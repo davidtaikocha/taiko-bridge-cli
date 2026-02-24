@@ -61,6 +61,10 @@ func newSendEthCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return clierr.Wrap(exitcodes.Validation, err)
 			}
+			gasResolution, err := bridgeops.ResolveETHGasLimit(ctx, rt.SrcBridge, dataBytes, gasLimit)
+			if err != nil {
+				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("resolve eth gas limit: %w", err))
+			}
 			destChainID, err := chainIDUint64(ctx, rt.DstClient)
 			if err != nil {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("dest chain id: %w", err))
@@ -74,7 +78,7 @@ func newSendEthCmd(opts *rootOptions) *cobra.Command {
 				To:          toAddr,
 				Value:       valueBI,
 				Fee:         feeBI,
-				GasLimit:    gasLimit,
+				GasLimit:    gasResolution.EffectiveGasLimit,
 				Data:        dataBytes,
 			})
 			if err != nil {
@@ -82,12 +86,16 @@ func newSendEthCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			return rt.Printer.Emit(map[string]any{
-				"action":           "send-eth",
-				"tx_hash":          res.TxHash.Hex(),
-				"message":          bridgeMessageToMap(res.Event.Message),
-				"msg_hash":         res.Event.MsgHashHex(),
-				"source_block":     res.Event.SourceBlock,
-				"source_log_index": res.Event.SourceLogIdx,
+				"action":              "send-eth",
+				"tx_hash":             res.TxHash.Hex(),
+				"message":             bridgeMessageToMap(res.Event.Message),
+				"msg_hash":            res.Event.MsgHashHex(),
+				"source_block":        res.Event.SourceBlock,
+				"source_log_index":    res.Event.SourceLogIdx,
+				"requested_gas_limit": gasResolution.RequestedGasLimit,
+				"min_gas_limit":       gasResolution.MinGasLimit,
+				"effective_gas_limit": gasResolution.EffectiveGasLimit,
+				"gas_limit_adjusted":  gasResolution.Adjusted,
 			})
 		},
 	}
@@ -96,7 +104,7 @@ func newSendEthCmd(opts *rootOptions) *cobra.Command {
 	cmd.Flags().StringVar(&destOwner, "dest-owner", "", "Destination message owner (defaults to --to)")
 	cmd.Flags().StringVar(&value, "value", "", "ETH amount in wei")
 	cmd.Flags().StringVar(&fee, "fee", "0", "Bridge fee in wei")
-	cmd.Flags().Uint32Var(&gasLimit, "gas-limit", 140000, "Message gas limit")
+	cmd.Flags().Uint32Var(&gasLimit, "gas-limit", 1000000, "Message gas limit")
 	cmd.Flags().StringVar(&dataHex, "data", "", "Optional calldata as 0x-prefixed hex")
 	cmd.Flags().DurationVar(&timeout, "timeout", 5*time.Minute, "Command timeout")
 
