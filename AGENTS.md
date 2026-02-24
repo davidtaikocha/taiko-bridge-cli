@@ -19,7 +19,11 @@ Guidance for coding agents working in this repository.
 ## Configuration Rules
 
 - Use flags only. Do not reintroduce YAML config files.
-- Required global flags are source/destination RPC + contract addresses.
+- Required global flags are source/destination RPC plus private key.
+- Contract addresses are auto-resolved from source/destination chain IDs for:
+  - Taiko Mainnet (`1`, `167000`)
+  - Taiko Hoodi (`560048`, `167013`)
+- Address flags remain optional overrides for custom deployments.
 - Private key is loaded via `--private-key` or `--private-key-env`.
 - Keep machine-friendly JSON output as the default (`--format json`).
 

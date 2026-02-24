@@ -8,20 +8,20 @@ Agent-friendly CLI for Taiko Native Bridge ETH/ERC20/ERC721/ERC1155 flows.
 go build ./cmd/bridge-cli
 ```
 
-## Required Endpoint Flags
+## Required Flags
 
 - `--src-rpc`
 - `--dst-rpc`
-- `--src-bridge`
-- `--dst-bridge`
-- `--src-signal-service`
-- `--dst-signal-service`
-- `--src-erc20-vault`
-- `--src-erc721-vault`
-- `--src-erc1155-vault`
 - `--private-key` or `--private-key-env`
 
-Choose source/destination endpoints to represent either direction (`L1->L2` or `L2->L1`).
+Contract addresses are auto-resolved from source/destination chain IDs for Taiko Mainnet and Taiko Hoodi.
+
+Optional override flags (only needed for custom deployments):
+- `--src-bridge`, `--dst-bridge`
+- `--src-signal-service`, `--dst-signal-service`
+- `--src-erc20-vault`, `--src-erc721-vault`, `--src-erc1155-vault`
+
+Choose source/destination RPC endpoints to represent either direction (`L1->L2` or `L2->L1`).
 
 ## Command Surface
 
@@ -36,13 +36,6 @@ Choose source/destination endpoints to represent either direction (`L1->L2` or `
 PRIVATE_KEY=0x... ./bridge-cli claim-eth \
   --src-rpc https://l1-rpc \
   --dst-rpc https://l2-rpc \
-  --src-bridge 0x... \
-  --dst-bridge 0x... \
-  --src-signal-service 0x... \
-  --dst-signal-service 0x... \
-  --src-erc20-vault 0x... \
-  --src-erc721-vault 0x... \
-  --src-erc1155-vault 0x... \
   --to 0xabc... \
   --value 10000000000000000 \
   --fee 1000000000000000

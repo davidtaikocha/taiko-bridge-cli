@@ -12,6 +12,7 @@ import (
 	erc20binding "github.com/davidcai/taiko-bridge-cli/internal/bindings/erc20vault"
 	erc721binding "github.com/davidcai/taiko-bridge-cli/internal/bindings/erc721vault"
 	signalservicebinding "github.com/davidcai/taiko-bridge-cli/internal/bindings/signalservice"
+	"github.com/davidcai/taiko-bridge-cli/internal/config"
 	"github.com/davidcai/taiko-bridge-cli/internal/outfmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -74,35 +75,6 @@ func loadRuntime(ctx context.Context, opts *rootOptions) (*runtime, error) {
 		return nil, err
 	}
 
-	srcBridgeAddr, err := parseAddress(opts.SrcBridge, "src-bridge")
-	if err != nil {
-		return nil, err
-	}
-	dstBridgeAddr, err := parseAddress(opts.DstBridge, "dst-bridge")
-	if err != nil {
-		return nil, err
-	}
-	srcSignalAddr, err := parseAddress(opts.SrcSignal, "src-signal-service")
-	if err != nil {
-		return nil, err
-	}
-	dstSignalAddr, err := parseAddress(opts.DstSignal, "dst-signal-service")
-	if err != nil {
-		return nil, err
-	}
-	srcERC20Addr, err := parseAddress(opts.SrcERC20Vault, "src-erc20-vault")
-	if err != nil {
-		return nil, err
-	}
-	srcERC721Addr, err := parseAddress(opts.SrcERC721Vault, "src-erc721-vault")
-	if err != nil {
-		return nil, err
-	}
-	srcERC1155Addr, err := parseAddress(opts.SrcERC1155Vault, "src-erc1155-vault")
-	if err != nil {
-		return nil, err
-	}
-
 	srcClient, err := ethclient.DialContext(ctx, srcRPCURL)
 	if err != nil {
 		return nil, fmt.Errorf("dial src rpc: %w", err)
@@ -111,6 +83,65 @@ func loadRuntime(ctx context.Context, opts *rootOptions) (*runtime, error) {
 	if err != nil {
 		srcClient.Close()
 		return nil, fmt.Errorf("dial dst rpc: %w", err)
+	}
+
+	srcChainID, err := chainIDUint64(ctx, srcClient)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, fmt.Errorf("src chain id: %w", err)
+	}
+	dstChainID, err := chainIDUint64(ctx, dstClient)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, fmt.Errorf("dst chain id: %w", err)
+	}
+
+	srcPreset, srcPresetOK := config.LookupFixedAddresses(srcChainID)
+	dstPreset, dstPresetOK := config.LookupFixedAddresses(dstChainID)
+
+	srcBridgeAddr, err := resolveAddressWithPreset(opts.SrcBridge, "src-bridge", srcPreset.Bridge, srcPresetOK, srcChainID)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, err
+	}
+	dstBridgeAddr, err := resolveAddressWithPreset(opts.DstBridge, "dst-bridge", dstPreset.Bridge, dstPresetOK, dstChainID)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, err
+	}
+	srcSignalAddr, err := resolveAddressWithPreset(opts.SrcSignal, "src-signal-service", srcPreset.SignalService, srcPresetOK, srcChainID)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, err
+	}
+	dstSignalAddr, err := resolveAddressWithPreset(opts.DstSignal, "dst-signal-service", dstPreset.SignalService, dstPresetOK, dstChainID)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, err
+	}
+	srcERC20Addr, err := resolveAddressWithPreset(opts.SrcERC20Vault, "src-erc20-vault", srcPreset.ERC20Vault, srcPresetOK, srcChainID)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, err
+	}
+	srcERC721Addr, err := resolveAddressWithPreset(opts.SrcERC721Vault, "src-erc721-vault", srcPreset.ERC721Vault, srcPresetOK, srcChainID)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, err
+	}
+	srcERC1155Addr, err := resolveAddressWithPreset(opts.SrcERC1155Vault, "src-erc1155-vault", srcPreset.ERC1155Vault, srcPresetOK, srcChainID)
+	if err != nil {
+		srcClient.Close()
+		dstClient.Close()
+		return nil, err
 	}
 
 	srcBridge, err := bridgebinding.NewBridge(srcBridgeAddr, srcClient)
@@ -197,10 +228,28 @@ func (r *runtime) close() {
 
 // parseAddress validates and parses an EVM address string.
 func parseAddress(v string, name string) (common.Address, error) {
+	v = strings.TrimSpace(v)
 	if !common.IsHexAddress(v) {
 		return common.Address{}, fmt.Errorf("invalid %s", name)
 	}
 	return common.HexToAddress(v), nil
+}
+
+// resolveAddressWithPreset resolves an address from explicit flag override or fixed chain preset.
+func resolveAddressWithPreset(
+	override string,
+	flagName string,
+	preset common.Address,
+	hasPreset bool,
+	chainID uint64,
+) (common.Address, error) {
+	if strings.TrimSpace(override) != "" {
+		return parseAddress(override, flagName)
+	}
+	if hasPreset {
+		return preset, nil
+	}
+	return common.Address{}, fmt.Errorf("%s is required for unsupported chain id %d", flagName, chainID)
 }
 
 // parseBig parses decimal or 0x-prefixed hexadecimal integer values.
