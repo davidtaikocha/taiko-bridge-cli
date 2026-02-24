@@ -1,6 +1,6 @@
 # Taiko Bridge CLI
 
-Agent-friendly CLI for Taiko Bridge ETH/ERC20/ERC721/ERC1155 flows on Shasta.
+Agent-friendly CLI for Taiko Native Bridge ETH/ERC20/ERC721/ERC1155 flows.
 
 ## Build
 
