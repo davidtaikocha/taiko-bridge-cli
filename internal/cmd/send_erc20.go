@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSendERC20Cmd builds and returns the send-erc20 cobra command.
 func newSendERC20Cmd(opts *rootOptions) *cobra.Command {
 	var token string
 	var to string
@@ -63,7 +64,7 @@ func newSendERC20Cmd(opts *rootOptions) *cobra.Command {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("dest chain id: %w", err))
 			}
 
-			res, err := bridgeops.SendERC20(ctx, rt.SrcClient, rt.SrcERC20Vault, rt.SrcBridge, rt.Profile.Src.BridgeAddress, pk, bridgeops.SendERC20Request{
+			res, err := bridgeops.SendERC20(ctx, rt.SrcClient, rt.SrcERC20Vault, rt.SrcBridge, rt.SrcBridgeAddress, pk, bridgeops.SendERC20Request{
 				DestChainID: destChainID,
 				DestOwner:   destOwnerAddr,
 				To:          toAddr,
@@ -78,7 +79,6 @@ func newSendERC20Cmd(opts *rootOptions) *cobra.Command {
 
 			return rt.Printer.Emit(map[string]any{
 				"action":           "send-erc20",
-				"profile":          rt.Profile.Name,
 				"tx_hash":          res.TxHash.Hex(),
 				"message":          bridgeMessageToMap(res.Event.Message),
 				"msg_hash":         res.Event.MsgHashHex(),

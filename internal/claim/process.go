@@ -17,33 +17,51 @@ import (
 )
 
 var (
+	// ErrNotReady indicates message proof is not yet processable on destination bridge.
 	ErrNotReady = errors.New("message not ready")
+	// ErrReverted indicates processMessage transaction reverted on-chain.
 	ErrReverted = errors.New("claim transaction reverted")
 )
 
+// bridgeContract is the destination bridge interface used by the claimer.
 type bridgeContract interface {
+	// ProcessMessage executes the claim on destination chain.
 	ProcessMessage(opts *bind.TransactOpts, _message bridgebinding.IBridgeMessage, _proof []byte) (*types.Transaction, error)
+	// IsMessageReceived checks if the message proof is currently valid.
 	IsMessageReceived(opts *bind.CallOpts, _message bridgebinding.IBridgeMessage, _proof []byte) (bool, error)
 }
 
+// receiptClient is the chain client surface needed by claim processing.
 type receiptClient interface {
+	// ChainID returns the target chain id used for signing.
 	ChainID(ctx context.Context) (*big.Int, error)
+	// TransactionReceipt returns receipt for submitted claim transaction.
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
+// Request contains claim inputs for bridge.processMessage.
 type Request struct {
+	// Message is the decoded bridge message.
 	Message bridgebinding.IBridgeMessage
-	Proof   []byte
-	Value   *big.Int
+	// Proof is the ABI-encoded hop proof payload.
+	Proof []byte
+	// Value is optional tx value to send with processMessage.
+	Value *big.Int
 }
 
+// Result describes claim execution status.
 type Result struct {
-	TxHash   common.Hash `json:"tx_hash"`
-	Ready    bool        `json:"ready"`
-	Claimed  bool        `json:"claimed"`
-	Reverted bool        `json:"reverted"`
+	// TxHash is the submitted claim transaction hash.
+	TxHash common.Hash `json:"tx_hash"`
+	// Ready reflects the pre-flight readiness check result.
+	Ready bool `json:"ready"`
+	// Claimed indicates whether claim completed successfully.
+	Claimed bool `json:"claimed"`
+	// Reverted indicates whether claim tx reverted on-chain.
+	Reverted bool `json:"reverted"`
 }
 
+// Process validates readiness, sends processMessage, and waits for tx confirmation.
 func Process(
 	ctx context.Context,
 	client receiptClient,
@@ -92,6 +110,7 @@ func Process(
 	return &Result{TxHash: tx.Hash(), Ready: true, Claimed: true}, nil
 }
 
+// waitReceipt polls transaction receipt until mined, reverted, or context timeout.
 func waitReceipt(ctx context.Context, client receiptClient, txHash common.Hash) (*types.Receipt, error) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -115,6 +134,7 @@ func waitReceipt(ctx context.Context, client receiptClient, txHash common.Hash) 
 	}
 }
 
+// IsNotReadyError classifies on-chain errors that indicate claim is not ready yet.
 func IsNotReadyError(err error) bool {
 	if err == nil {
 		return false

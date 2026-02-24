@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newAgentCmd creates helper commands intended for automation integrations.
 func newAgentCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{Use: "agent", Short: "Agent helper commands"}
 	cmd.AddCommand(&cobra.Command{

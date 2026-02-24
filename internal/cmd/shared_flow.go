@@ -16,10 +16,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// probeRunner abstracts readiness probing for production code and tests.
 type probeRunner interface {
+	// Probe performs one readiness check attempt.
 	Probe(ctx context.Context) (*ready.Result, error)
 }
 
+// buildProber wires chain clients/services into a readiness prober instance.
 func buildProber(rt *runtime, evt bridgetypes.MessageSent, checkpointConfs uint64) *ready.Prober {
 	return ready.FromMessageEvent(
 		evt,
@@ -31,7 +34,7 @@ func buildProber(rt *runtime, evt bridgetypes.MessageSent, checkpointConfs uint6
 				RPC:                rt.SrcClient.Client(),
 				BlockReader:        rt.SrcClient,
 				SignalService:      rt.SrcSignalService,
-				SignalServiceAddr:  rt.Profile.Src.SignalService,
+				SignalServiceAddr:  rt.SrcSignalAddress,
 				HopChainID:         evt.Message.DestChainId,
 				Message:            evt,
 				CheckpointBlockNum: checkpointBlock,
@@ -43,6 +46,7 @@ func buildProber(rt *runtime, evt bridgetypes.MessageSent, checkpointConfs uint6
 	)
 }
 
+// autoClaimLoop runs the pipeline claim retry flow using the default runtime prober.
 func autoClaimLoop(
 	ctx context.Context,
 	rt *runtime,
@@ -70,6 +74,7 @@ func autoClaimLoop(
 	)
 }
 
+// autoClaimWithProber retries readiness checks and claim attempts until success or timeout.
 func autoClaimWithProber(
 	ctx context.Context,
 	prober probeRunner,
@@ -133,6 +138,7 @@ func autoClaimWithProber(
 	}
 }
 
+// parseHash validates and parses a 32-byte transaction/message hash.
 func parseHash(v string, field string) (common.Hash, error) {
 	matched, _ := regexp.MatchString("^0x[0-9a-fA-F]{64}$", v)
 	if !matched {
@@ -141,6 +147,7 @@ func parseHash(v string, field string) (common.Hash, error) {
 	return common.HexToHash(v), nil
 }
 
+// bridgeMessageToMap converts a bridge message into JSON-friendly output fields.
 func bridgeMessageToMap(m bridgebinding.IBridgeMessage) map[string]any {
 	return map[string]any{
 		"id":            m.Id,

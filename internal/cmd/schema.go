@@ -7,30 +7,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSchemaCmd builds and returns the schema cobra command.
 func newSchemaCmd(opts *rootOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "schema",
-		Short: "Print config and output schema",
+		Short: "Print flag and output schema",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			p := outfmt.Printer{Format: opts.Format, Out: os.Stdout}
 			return p.Emit(map[string]any{
-				"config_yaml": map[string]any{
-					"profiles.<name>.src": map[string]string{
-						"rpc_url":        "string",
-						"bridge":         "address",
-						"signal_service": "address",
-						"erc20_vault":    "address",
-						"erc721_vault":   "address",
-						"erc1155_vault":  "address",
-					},
-					"profiles.<name>.dest": map[string]string{
-						"rpc_url":        "string",
-						"bridge":         "address",
-						"signal_service": "address",
-						"erc20_vault":    "address",
-						"erc721_vault":   "address",
-						"erc1155_vault":  "address",
-					},
+				"required_flags": map[string]string{
+					"--src-rpc":                       "string",
+					"--dst-rpc":                       "string",
+					"--src-bridge":                    "address",
+					"--dst-bridge":                    "address",
+					"--src-signal-service":            "address",
+					"--dst-signal-service":            "address",
+					"--src-erc20-vault":               "address",
+					"--src-erc721-vault":              "address",
+					"--src-erc1155-vault":             "address",
+					"--private-key|--private-key-env": "hex private key",
 				},
 				"command_outputs": []string{
 					"send-* => tx_hash,msg_hash,source_block",

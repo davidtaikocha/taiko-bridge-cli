@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSendERC1155Cmd builds and returns the send-erc1155 cobra command.
 func newSendERC1155Cmd(opts *rootOptions) *cobra.Command {
 	var token string
 	var to string
@@ -68,7 +69,7 @@ func newSendERC1155Cmd(opts *rootOptions) *cobra.Command {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("dest chain id: %w", err))
 			}
 
-			res, err := bridgeops.SendERC1155(ctx, rt.SrcClient, rt.SrcERC1155Vault, rt.SrcBridge, rt.Profile.Src.BridgeAddress, pk, bridgeops.SendNFTRequest{
+			res, err := bridgeops.SendERC1155(ctx, rt.SrcClient, rt.SrcERC1155Vault, rt.SrcBridge, rt.SrcBridgeAddress, pk, bridgeops.SendNFTRequest{
 				DestChainID: destChainID,
 				DestOwner:   destOwnerAddr,
 				To:          toAddr,
@@ -84,7 +85,6 @@ func newSendERC1155Cmd(opts *rootOptions) *cobra.Command {
 
 			return rt.Printer.Emit(map[string]any{
 				"action":           "send-erc1155",
-				"profile":          rt.Profile.Name,
 				"tx_hash":          res.TxHash.Hex(),
 				"message":          bridgeMessageToMap(res.Event.Message),
 				"msg_hash":         res.Event.MsgHashHex(),

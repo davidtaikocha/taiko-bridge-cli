@@ -1,51 +1,27 @@
-# Taiko Bridge CLI (`tbc`)
+# Taiko Bridge CLI
 
 Agent-friendly CLI for Taiko Bridge ETH/ERC20/ERC721/ERC1155 flows on Shasta.
 
 ## Build
 
 ```bash
-go build ./cmd/tbc
+go build ./cmd/bridge-cli
 ```
 
-## Config
+## Required Endpoint Flags
 
-Create `tbc.yaml`:
+- `--src-rpc`
+- `--dst-rpc`
+- `--src-bridge`
+- `--dst-bridge`
+- `--src-signal-service`
+- `--dst-signal-service`
+- `--src-erc20-vault`
+- `--src-erc721-vault`
+- `--src-erc1155-vault`
+- `--private-key` or `--private-key-env`
 
-```yaml
-profiles:
-  l1_to_l2:
-    src:
-      rpc_url: https://l1-rpc
-      bridge: 0x...
-      signal_service: 0x...
-      erc20_vault: 0x...
-      erc721_vault: 0x...
-      erc1155_vault: 0x...
-    dest:
-      rpc_url: https://l2-rpc
-      bridge: 0x...
-      signal_service: 0x...
-      erc20_vault: 0x...
-      erc721_vault: 0x...
-      erc1155_vault: 0x...
-
-  l2_to_l1:
-    src:
-      rpc_url: https://l2-rpc
-      bridge: 0x...
-      signal_service: 0x...
-      erc20_vault: 0x...
-      erc721_vault: 0x...
-      erc1155_vault: 0x...
-    dest:
-      rpc_url: https://l1-rpc
-      bridge: 0x...
-      signal_service: 0x...
-      erc20_vault: 0x...
-      erc721_vault: 0x...
-      erc1155_vault: 0x...
-```
+Choose source/destination endpoints to represent either direction (`L1->L2` or `L2->L1`).
 
 ## Command Surface
 
@@ -57,9 +33,16 @@ profiles:
 ## Example
 
 ```bash
-PRIVATE_KEY=0x... ./tbc claim-eth \
-  --config ./tbc.yaml \
-  --profile l1_to_l2 \
+PRIVATE_KEY=0x... ./bridge-cli claim-eth \
+  --src-rpc https://l1-rpc \
+  --dst-rpc https://l2-rpc \
+  --src-bridge 0x... \
+  --dst-bridge 0x... \
+  --src-signal-service 0x... \
+  --dst-signal-service 0x... \
+  --src-erc20-vault 0x... \
+  --src-erc721-vault 0x... \
+  --src-erc1155-vault 0x... \
   --to 0xabc... \
   --value 10000000000000000 \
   --fee 1000000000000000

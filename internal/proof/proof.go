@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	signalservicebinding "github.com/davidcai/taiko-bridge-cli/internal/bindings/v4/signalservice"
+	signalservicebinding "github.com/davidcai/taiko-bridge-cli/internal/bindings/signalservice"
 	bridgetypes "github.com/davidcai/taiko-bridge-cli/internal/types"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -14,37 +14,58 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+// rpcCaller defines the minimal RPC caller interface needed for eth_getProof.
 type rpcCaller interface {
+	// CallContext performs a JSON-RPC call with context.
 	CallContext(ctx context.Context, result interface{}, method string, args ...interface{}) error
 }
 
+// blockReader defines block access needed to get source state root.
 type blockReader interface {
+	// BlockByNumber returns block data for the specified block number.
 	BlockByNumber(ctx context.Context, number *big.Int) (*types.Block, error)
 }
 
+// BuildRequest contains all dependencies and metadata required to build a proof.
 type BuildRequest struct {
-	RPC                rpcCaller
-	BlockReader        blockReader
-	SignalService      *signalservicebinding.SignalService
-	SignalServiceAddr  common.Address
-	HopChainID         uint64
-	Message            bridgetypes.MessageSent
+	// RPC is the source chain JSON-RPC caller.
+	RPC rpcCaller
+	// BlockReader is used to fetch source block root hash.
+	BlockReader blockReader
+	// SignalService is the source signal service binding.
+	SignalService *signalservicebinding.SignalService
+	// SignalServiceAddr is the source signal service contract address.
+	SignalServiceAddr common.Address
+	// HopChainID is the destination chain id encoded in hop proof.
+	HopChainID uint64
+	// Message is the source message event metadata.
+	Message bridgetypes.MessageSent
+	// CheckpointBlockNum is the checkpoint block to prove against.
 	CheckpointBlockNum uint64
 }
 
+// HopProof is the ABI model for one-hop proof tuple.
 type HopProof struct {
-	ChainID      uint64   `abi:"chainId"`
-	BlockID      uint64   `abi:"blockId"`
-	RootHash     [32]byte `abi:"rootHash"`
-	CacheOption  uint8    `abi:"cacheOption"`
+	// ChainID is the destination chain id.
+	ChainID uint64 `abi:"chainId"`
+	// BlockID is the block number used for proof.
+	BlockID uint64 `abi:"blockId"`
+	// RootHash is the source block state root.
+	RootHash [32]byte `abi:"rootHash"`
+	// CacheOption controls bridge cache behavior.
+	CacheOption uint8 `abi:"cacheOption"`
+	// AccountProof is eth_getProof account proof nodes.
 	AccountProof [][]byte `abi:"accountProof"`
+	// StorageProof is eth_getProof storage proof nodes.
 	StorageProof [][]byte `abi:"storageProof"`
 }
 
 var (
+	// hopProofsType is the ABI tuple[] type used to pack hop proof arrays.
 	hopProofsType abi.Type
 )
 
+// init pre-builds ABI type descriptors used during proof encoding.
 func init() {
 	var err error
 	hopProofsType, err = abi.NewType("tuple[]", "tuple[]", []abi.ArgumentMarshaling{
@@ -60,6 +81,7 @@ func init() {
 	}
 }
 
+// Build generates and ABI-encodes a single-hop signal proof for processMessage.
 func Build(ctx context.Context, req BuildRequest) ([]byte, error) {
 	if req.RPC == nil || req.BlockReader == nil || req.SignalService == nil {
 		return nil, fmt.Errorf("missing proof dependencies")
@@ -108,14 +130,20 @@ func Build(ctx context.Context, req BuildRequest) ([]byte, error) {
 	return encoded, nil
 }
 
+// getProofResponse is the partial eth_getProof response model used by this tool.
 type getProofResponse struct {
+	// AccountProof contains account proof node hex strings.
 	AccountProof []string `json:"accountProof"`
+	// StorageProof contains one storage proof entry for the signal slot.
 	StorageProof []struct {
-		Value string   `json:"value"`
+		// Value is the proved slot value.
+		Value string `json:"value"`
+		// Proof is the storage proof node list.
 		Proof []string `json:"proof"`
 	} `json:"storageProof"`
 }
 
+// getProof fetches account/storage proof for signal slot at a given block.
 func getProof(
 	ctx context.Context,
 	caller rpcCaller,
@@ -158,6 +186,7 @@ func getProof(
 	return accountProof, storageProof, nil
 }
 
+// decodeHexArray decodes a list of 0x-prefixed hex strings into byte slices.
 func decodeHexArray(in []string) ([][]byte, error) {
 	out := make([][]byte, 0, len(in))
 	for _, v := range in {
@@ -170,6 +199,7 @@ func decodeHexArray(in []string) ([][]byte, error) {
 	return out, nil
 }
 
+// trim0x removes a leading 0x prefix when present.
 func trim0x(v string) string {
 	if len(v) >= 2 && v[:2] == "0x" {
 		return v[2:]

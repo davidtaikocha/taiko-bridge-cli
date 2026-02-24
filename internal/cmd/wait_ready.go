@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newWaitReadyCmd builds and returns the wait-ready cobra command.
 func newWaitReadyCmd(opts *rootOptions) *cobra.Command {
 	var txHash string
 	var eventIndex int
@@ -38,7 +39,7 @@ func newWaitReadyCmd(opts *rootOptions) *cobra.Command {
 				return clierr.Wrap(exitcodes.Validation, err)
 			}
 
-			evt, _, err := bridgeops.ReadMessageSentFromTx(ctx, rt.SrcClient, rt.SrcBridge, rt.Profile.Src.BridgeAddress, h, eventIndex)
+			evt, _, err := bridgeops.ReadMessageSentFromTx(ctx, rt.SrcClient, rt.SrcBridge, rt.SrcBridgeAddress, h, eventIndex)
 			if err != nil {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("read MessageSent: %w", err))
 			}

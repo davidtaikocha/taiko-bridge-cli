@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newClaimEthCmd builds and returns the claim-eth cobra command.
 func newClaimEthCmd(opts *rootOptions) *cobra.Command {
 	var to string
 	var destOwner string
@@ -70,7 +71,7 @@ func newClaimEthCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			from := crypto.PubkeyToAddress(pk.PublicKey)
-			sendRes, err := bridgeops.SendETH(ctx, rt.SrcClient, rt.SrcBridge, rt.Profile.Src.BridgeAddress, pk, bridgeops.SendETHRequest{
+			sendRes, err := bridgeops.SendETH(ctx, rt.SrcClient, rt.SrcBridge, rt.SrcBridgeAddress, pk, bridgeops.SendETHRequest{
 				From:        from,
 				DestChainID: destChainID,
 				DestOwner:   destOwnerAddr,
@@ -99,7 +100,6 @@ func newClaimEthCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			out["action"] = "claim-eth"
-			out["profile"] = rt.Profile.Name
 			return rt.Printer.Emit(out)
 		},
 	}

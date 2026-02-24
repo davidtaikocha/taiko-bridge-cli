@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSendERC721Cmd builds and returns the send-erc721 cobra command.
 func newSendERC721Cmd(opts *rootOptions) *cobra.Command {
 	var token string
 	var to string
@@ -68,7 +69,7 @@ func newSendERC721Cmd(opts *rootOptions) *cobra.Command {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("dest chain id: %w", err))
 			}
 
-			res, err := bridgeops.SendERC721(ctx, rt.SrcClient, rt.SrcERC721Vault, rt.SrcBridge, rt.Profile.Src.BridgeAddress, pk, bridgeops.SendNFTRequest{
+			res, err := bridgeops.SendERC721(ctx, rt.SrcClient, rt.SrcERC721Vault, rt.SrcBridge, rt.SrcBridgeAddress, pk, bridgeops.SendNFTRequest{
 				DestChainID: destChainID,
 				DestOwner:   destOwnerAddr,
 				To:          toAddr,
@@ -84,7 +85,6 @@ func newSendERC721Cmd(opts *rootOptions) *cobra.Command {
 
 			return rt.Printer.Emit(map[string]any{
 				"action":           "send-erc721",
-				"profile":          rt.Profile.Name,
 				"tx_hash":          res.TxHash.Hex(),
 				"message":          bridgeMessageToMap(res.Event.Message),
 				"msg_hash":         res.Event.MsgHashHex(),

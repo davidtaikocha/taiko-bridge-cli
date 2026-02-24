@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newSendEthCmd builds and returns the send-eth cobra command.
 func newSendEthCmd(opts *rootOptions) *cobra.Command {
 	var to string
 	var destOwner string
@@ -66,7 +67,7 @@ func newSendEthCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			from := crypto.PubkeyToAddress(pk.PublicKey)
-			res, err := bridgeops.SendETH(ctx, rt.SrcClient, rt.SrcBridge, rt.Profile.Src.BridgeAddress, pk, bridgeops.SendETHRequest{
+			res, err := bridgeops.SendETH(ctx, rt.SrcClient, rt.SrcBridge, rt.SrcBridgeAddress, pk, bridgeops.SendETHRequest{
 				From:        from,
 				DestChainID: destChainID,
 				DestOwner:   destOwnerAddr,
@@ -82,7 +83,6 @@ func newSendEthCmd(opts *rootOptions) *cobra.Command {
 
 			return rt.Printer.Emit(map[string]any{
 				"action":           "send-eth",
-				"profile":          rt.Profile.Name,
 				"tx_hash":          res.TxHash.Hex(),
 				"message":          bridgeMessageToMap(res.Event.Message),
 				"msg_hash":         res.Event.MsgHashHex(),

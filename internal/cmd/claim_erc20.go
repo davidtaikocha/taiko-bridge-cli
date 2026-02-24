@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newClaimERC20Cmd builds and returns the claim-erc20 cobra command.
 func newClaimERC20Cmd(opts *rootOptions) *cobra.Command {
 	var token string
 	var to string
@@ -68,7 +69,7 @@ func newClaimERC20Cmd(opts *rootOptions) *cobra.Command {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("dest chain id: %w", err))
 			}
 
-			sendRes, err := bridgeops.SendERC20(ctx, rt.SrcClient, rt.SrcERC20Vault, rt.SrcBridge, rt.Profile.Src.BridgeAddress, pk, bridgeops.SendERC20Request{
+			sendRes, err := bridgeops.SendERC20(ctx, rt.SrcClient, rt.SrcERC20Vault, rt.SrcBridge, rt.SrcBridgeAddress, pk, bridgeops.SendERC20Request{
 				DestChainID: destChainID,
 				DestOwner:   destOwnerAddr,
 				To:          toAddr,
@@ -96,7 +97,6 @@ func newClaimERC20Cmd(opts *rootOptions) *cobra.Command {
 			}
 
 			out["action"] = "claim-erc20"
-			out["profile"] = rt.Profile.Name
 			return rt.Printer.Emit(out)
 		},
 	}

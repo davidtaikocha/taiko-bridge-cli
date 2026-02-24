@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newClaimCmd builds and returns the claim cobra command.
 func newClaimCmd(opts *rootOptions) *cobra.Command {
 	var txHash string
 	var eventIndex int
@@ -42,7 +43,7 @@ func newClaimCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return clierr.Wrap(exitcodes.Validation, err)
 			}
-			evt, _, err := bridgeops.ReadMessageSentFromTx(ctx, rt.SrcClient, rt.SrcBridge, rt.Profile.Src.BridgeAddress, h, eventIndex)
+			evt, _, err := bridgeops.ReadMessageSentFromTx(ctx, rt.SrcClient, rt.SrcBridge, rt.SrcBridgeAddress, h, eventIndex)
 			if err != nil {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("read MessageSent: %w", err))
 			}
@@ -72,7 +73,6 @@ func newClaimCmd(opts *rootOptions) *cobra.Command {
 
 			return rt.Printer.Emit(map[string]any{
 				"action":           "claim",
-				"profile":          rt.Profile.Name,
 				"source_tx_hash":   h.Hex(),
 				"msg_hash":         evt.MsgHashHex(),
 				"checkpoint_block": waitRes.CheckpointBlock,

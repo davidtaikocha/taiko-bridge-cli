@@ -6,21 +6,29 @@ import (
 	"time"
 )
 
+// fakeSource is a deterministic checkpoint source for readiness tests.
 type fakeSource struct {
-	calls        int
+	// calls tracks fetch invocations.
+	calls int
+	// eventsByCall stores events returned for each call count.
 	eventsByCall map[int][]checkpointEvent
 }
 
+// Fetch returns events mapped to current call count.
 func (f *fakeSource) Fetch(ctx context.Context, fromLog uint64, toLog uint64) ([]checkpointEvent, error) {
 	f.calls++
 	return f.eventsByCall[f.calls], nil
 }
 
+// fakeHead is a deterministic head reader for tests.
 type fakeHead struct {
+	// values contains block number sequence.
 	values []uint64
-	idx    int
+	// idx tracks next value index.
+	idx int
 }
 
+// BlockNumber returns head sequence values and repeats last value when exhausted.
 func (f *fakeHead) BlockNumber(ctx context.Context) (uint64, error) {
 	if len(f.values) == 0 {
 		return 0, nil
@@ -33,6 +41,7 @@ func (f *fakeHead) BlockNumber(ctx context.Context) (uint64, error) {
 	return v, nil
 }
 
+// TestProberImmediateReady verifies immediate readiness when qualifying checkpoint exists.
 func TestProberImmediateReady(t *testing.T) {
 	src := &fakeSource{eventsByCall: map[int][]checkpointEvent{
 		1: {{CheckpointBlock: 120, LogBlock: 10}},
@@ -56,6 +65,7 @@ func TestProberImmediateReady(t *testing.T) {
 	}
 }
 
+// TestProberEventualReady verifies polling path that becomes ready in later probe.
 func TestProberEventualReady(t *testing.T) {
 	src := &fakeSource{eventsByCall: map[int][]checkpointEvent{
 		1: {},
@@ -84,6 +94,7 @@ func TestProberEventualReady(t *testing.T) {
 	}
 }
 
+// TestProberTimeout verifies timeout error when readiness never becomes true.
 func TestProberTimeout(t *testing.T) {
 	src := &fakeSource{eventsByCall: map[int][]checkpointEvent{}}
 	head := &fakeHead{values: []uint64{5, 6, 7, 8}}

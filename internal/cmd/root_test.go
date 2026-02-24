@@ -2,6 +2,7 @@ package cmd
 
 import "testing"
 
+// TestBridgeAliasesResolveToClaimCommands verifies compatibility aliases resolve to claim-* commands.
 func TestBridgeAliasesResolveToClaimCommands(t *testing.T) {
 	root := NewRootCmd()
 

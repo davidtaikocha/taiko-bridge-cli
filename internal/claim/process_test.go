@@ -13,32 +13,43 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+// fakeClient is a deterministic claim receipt client for tests.
 type fakeClient struct {
+	// chainID is returned by ChainID.
 	chainID *big.Int
+	// receipt is returned by TransactionReceipt.
 	receipt *types.Receipt
 }
 
+// ChainID returns the configured chain id.
 func (f *fakeClient) ChainID(ctx context.Context) (*big.Int, error) {
 	return f.chainID, nil
 }
 
+// TransactionReceipt returns the configured receipt.
 func (f *fakeClient) TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error) {
 	return f.receipt, nil
 }
 
+// fakeBridge is a deterministic destination bridge for claim tests.
 type fakeBridge struct {
+	// ready controls IsMessageReceived result.
 	ready bool
-	tx    *types.Transaction
+	// tx is returned by ProcessMessage.
+	tx *types.Transaction
 }
 
+// IsMessageReceived returns configured readiness.
 func (f *fakeBridge) IsMessageReceived(opts *bind.CallOpts, _message bridgebinding.IBridgeMessage, _proof []byte) (bool, error) {
 	return f.ready, nil
 }
 
+// ProcessMessage returns configured transaction.
 func (f *fakeBridge) ProcessMessage(opts *bind.TransactOpts, _message bridgebinding.IBridgeMessage, _proof []byte) (*types.Transaction, error) {
 	return f.tx, nil
 }
 
+// TestProcess_HappyPath verifies successful claim lifecycle.
 func TestProcess_HappyPath(t *testing.T) {
 	key := mustKey(t)
 	tx := types.NewTx(&types.LegacyTx{Nonce: 1, To: &common.Address{}, Gas: 21000, GasPrice: big.NewInt(1)})
@@ -54,6 +65,7 @@ func TestProcess_HappyPath(t *testing.T) {
 	}
 }
 
+// TestProcess_Revert verifies revert classification on failed receipt status.
 func TestProcess_Revert(t *testing.T) {
 	key := mustKey(t)
 	tx := types.NewTx(&types.LegacyTx{Nonce: 1, To: &common.Address{}, Gas: 21000, GasPrice: big.NewInt(1)})
@@ -66,6 +78,7 @@ func TestProcess_Revert(t *testing.T) {
 	}
 }
 
+// TestProcess_NotReady verifies early return when IsMessageReceived is false.
 func TestProcess_NotReady(t *testing.T) {
 	key := mustKey(t)
 	b := &fakeBridge{ready: false}
@@ -77,6 +90,7 @@ func TestProcess_NotReady(t *testing.T) {
 	}
 }
 
+// mustKey generates a throwaway private key for tests.
 func mustKey(t *testing.T) *ecdsa.PrivateKey {
 	t.Helper()
 	k, err := crypto.GenerateKey()

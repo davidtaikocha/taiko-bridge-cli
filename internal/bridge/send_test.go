@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// TestBuildETHMessage_BiDirectional verifies ETH message construction for both directions.
 func TestBuildETHMessage_BiDirectional(t *testing.T) {
 	cases := []struct {
 		name      string
@@ -49,6 +50,7 @@ func TestBuildETHMessage_BiDirectional(t *testing.T) {
 	}
 }
 
+// TestBuildERC20Op_ValidationAndPayload validates ERC20 op payload shape and input checks.
 func TestBuildERC20Op_ValidationAndPayload(t *testing.T) {
 	cases := []uint64{1, 167000}
 	for _, chainID := range cases {
@@ -88,6 +90,7 @@ func TestBuildERC20Op_ValidationAndPayload(t *testing.T) {
 	}
 }
 
+// TestBuildNFTAmounts validates ERC721 defaults and mismatch checks.
 func TestBuildNFTAmounts(t *testing.T) {
 	ids := []*big.Int{big.NewInt(1), big.NewInt(2)}
 	amts, err := BuildNFTAmounts(ids, nil, true)

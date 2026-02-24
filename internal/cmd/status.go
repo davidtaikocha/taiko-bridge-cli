@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// newStatusCmd builds and returns the status cobra command.
 func newStatusCmd(opts *rootOptions) *cobra.Command {
 	var txHash string
 	var eventIndex int
@@ -35,7 +36,7 @@ func newStatusCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return clierr.Wrap(exitcodes.Validation, err)
 			}
-			evt, _, err := bridgeops.ReadMessageSentFromTx(ctx, rt.SrcClient, rt.SrcBridge, rt.Profile.Src.BridgeAddress, h, eventIndex)
+			evt, _, err := bridgeops.ReadMessageSentFromTx(ctx, rt.SrcClient, rt.SrcBridge, rt.SrcBridgeAddress, h, eventIndex)
 			if err != nil {
 				return clierr.Wrap(exitcodes.RPCOrProof, fmt.Errorf("read MessageSent: %w", err))
 			}
@@ -52,7 +53,6 @@ func newStatusCmd(opts *rootOptions) *cobra.Command {
 
 			return rt.Printer.Emit(map[string]any{
 				"action":              "status",
-				"profile":             rt.Profile.Name,
 				"source_tx_hash":      h.Hex(),
 				"msg_hash":            evt.MsgHashHex(),
 				"source_block":        evt.SourceBlock,

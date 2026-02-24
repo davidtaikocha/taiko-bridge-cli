@@ -12,12 +12,17 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// fakeProber is a deterministic test implementation of probeRunner.
 type fakeProber struct {
+	// results is the probe result sequence to emit.
 	results []*ready.Result
-	err     error
-	idx     int
+	// err is an optional fixed probe error.
+	err error
+	// idx tracks next result index.
+	idx int
 }
 
+// Probe returns configured probe results in sequence.
 func (f *fakeProber) Probe(ctx context.Context) (*ready.Result, error) {
 	if f.err != nil {
 		return nil, f.err
@@ -30,6 +35,7 @@ func (f *fakeProber) Probe(ctx context.Context) (*ready.Result, error) {
 	return r, nil
 }
 
+// TestAutoClaimWithProber_RetrysUntilSuccess verifies not-ready retries then success.
 func TestAutoClaimWithProber_RetrysUntilSuccess(t *testing.T) {
 	p := &fakeProber{results: []*ready.Result{
 		{Ready: false, CheckpointBlock: 101, Proof: []byte{0x01}, Progress: ready.Progress{SourceBlock: 100}},
@@ -61,6 +67,7 @@ func TestAutoClaimWithProber_RetrysUntilSuccess(t *testing.T) {
 	}
 }
 
+// TestAutoClaimWithProber_Timeout verifies timeout behavior when readiness never arrives.
 func TestAutoClaimWithProber_Timeout(t *testing.T) {
 	p := &fakeProber{results: []*ready.Result{{Ready: false, CheckpointBlock: 0, Progress: ready.Progress{SourceBlock: 100}}}}
 	claimFn := func(ctx context.Context, proof []byte) (*claim.Result, error) {

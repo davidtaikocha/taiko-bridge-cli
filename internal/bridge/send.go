@@ -20,53 +20,89 @@ import (
 )
 
 var (
+	// ErrNoMessageSentEvent indicates the source receipt had no parseable MessageSent log.
 	ErrNoMessageSentEvent = errors.New("no MessageSent event found in receipt")
-	ErrTxReverted         = errors.New("transaction reverted")
+	// ErrTxReverted indicates the submitted source tx reverted.
+	ErrTxReverted = errors.New("transaction reverted")
 )
 
+// receiptReader is the minimal source-chain interface used by send flows.
 type receiptReader interface {
+	// ChainID returns chain id used for transactor setup.
 	ChainID(ctx context.Context) (*big.Int, error)
+	// TransactionReceipt fetches tx receipt for status and logs.
 	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 }
 
+// SendETHRequest captures parameters for bridge.sendMessage ETH flow.
 type SendETHRequest struct {
-	From        common.Address
+	// From is the source account sending the bridge message.
+	From common.Address
+	// DestChainID is the destination chain id in bridge message.
 	DestChainID uint64
-	DestOwner   common.Address
-	To          common.Address
-	Value       *big.Int
-	Fee         *big.Int
-	GasLimit    uint32
-	Data        []byte
+	// DestOwner is the destination message owner.
+	DestOwner common.Address
+	// To is the destination recipient.
+	To common.Address
+	// Value is bridged ETH value (excluding fee).
+	Value *big.Int
+	// Fee is bridge processing fee.
+	Fee *big.Int
+	// GasLimit is message gas limit on destination.
+	GasLimit uint32
+	// Data is optional destination calldata.
+	Data []byte
 }
 
+// SendERC20Request captures parameters for ERC20Vault.sendToken.
 type SendERC20Request struct {
+	// DestChainID is the destination chain id.
 	DestChainID uint64
-	DestOwner   common.Address
-	To          common.Address
-	Fee         *big.Int
-	Token       common.Address
-	GasLimit    uint32
-	Amount      *big.Int
+	// DestOwner is destination message owner.
+	DestOwner common.Address
+	// To is destination recipient.
+	To common.Address
+	// Fee is bridge processing fee.
+	Fee *big.Int
+	// Token is canonical ERC20 token address on source.
+	Token common.Address
+	// GasLimit is destination call gas limit.
+	GasLimit uint32
+	// Amount is token amount to bridge.
+	Amount *big.Int
 }
 
+// SendNFTRequest captures parameters for ERC721/1155 vault sendToken.
 type SendNFTRequest struct {
+	// DestChainID is destination chain id.
 	DestChainID uint64
-	DestOwner   common.Address
-	To          common.Address
-	Fee         *big.Int
-	Token       common.Address
-	GasLimit    uint32
-	TokenIDs    []*big.Int
-	Amounts     []*big.Int
+	// DestOwner is destination message owner.
+	DestOwner common.Address
+	// To is destination recipient.
+	To common.Address
+	// Fee is bridge processing fee.
+	Fee *big.Int
+	// Token is source NFT collection address.
+	Token common.Address
+	// GasLimit is destination call gas limit.
+	GasLimit uint32
+	// TokenIDs is the NFT token id list.
+	TokenIDs []*big.Int
+	// Amounts is the amount list aligned with TokenIDs.
+	Amounts []*big.Int
 }
 
+// SendResult contains source transaction and decoded bridge event metadata.
 type SendResult struct {
-	TxHash  common.Hash
+	// TxHash is the source send transaction hash.
+	TxHash common.Hash
+	// Receipt is the mined source receipt.
 	Receipt *types.Receipt
-	Event   bridgetypes.MessageSent
+	// Event is the decoded MessageSent event.
+	Event bridgetypes.MessageSent
 }
 
+// BuildETHMessage validates ETH request and builds bridge message plus tx msg.value.
 func BuildETHMessage(req SendETHRequest, srcChainID uint64) (bridgebinding.IBridgeMessage, *big.Int, error) {
 	if req.Value == nil || req.Value.Sign() < 0 {
 		return bridgebinding.IBridgeMessage{}, nil, fmt.Errorf("value must be >= 0")
@@ -97,6 +133,7 @@ func BuildETHMessage(req SendETHRequest, srcChainID uint64) (bridgebinding.IBrid
 	return msg, msgValue, nil
 }
 
+// BuildERC20Op validates request and builds ERC20Vault bridge operation plus tx msg.value.
 func BuildERC20Op(req SendERC20Request) (erc20binding.ERC20VaultBridgeTransferOp, *big.Int, error) {
 	if req.Amount == nil || req.Amount.Sign() <= 0 {
 		return erc20binding.ERC20VaultBridgeTransferOp{}, nil, fmt.Errorf("amount must be > 0")
@@ -120,6 +157,7 @@ func BuildERC20Op(req SendERC20Request) (erc20binding.ERC20VaultBridgeTransferOp
 	return op, new(big.Int).Set(req.Fee), nil
 }
 
+// BuildNFTAmounts validates token ids/amounts and normalizes ERC721 defaults.
 func BuildNFTAmounts(tokenIDs []*big.Int, amounts []*big.Int, is721 bool) ([]*big.Int, error) {
 	if len(tokenIDs) == 0 {
 		return nil, fmt.Errorf("token ids required")
@@ -145,6 +183,7 @@ func BuildNFTAmounts(tokenIDs []*big.Int, amounts []*big.Int, is721 bool) ([]*bi
 	return out, nil
 }
 
+// SendETH submits bridge.sendMessage for ETH and returns decoded MessageSent metadata.
 func SendETH(
 	ctx context.Context,
 	client receiptReader,
@@ -178,6 +217,7 @@ func SendETH(
 	return waitAndExtract(ctx, client, srcBridge, sourceBridgeAddress, tx.Hash(), 0)
 }
 
+// SendERC20 submits ERC20Vault.sendToken and returns decoded MessageSent metadata.
 func SendERC20(
 	ctx context.Context,
 	client receiptReader,
@@ -208,6 +248,7 @@ func SendERC20(
 	return waitAndExtract(ctx, client, srcBridge, sourceBridgeAddress, tx.Hash(), 0)
 }
 
+// SendERC721 submits ERC721Vault.sendToken and returns decoded MessageSent metadata.
 func SendERC721(
 	ctx context.Context,
 	client receiptReader,
@@ -252,6 +293,7 @@ func SendERC721(
 	return waitAndExtract(ctx, client, srcBridge, sourceBridgeAddress, tx.Hash(), 0)
 }
 
+// SendERC1155 submits ERC1155Vault.sendToken and returns decoded MessageSent metadata.
 func SendERC1155(
 	ctx context.Context,
 	client receiptReader,
@@ -296,6 +338,7 @@ func SendERC1155(
 	return waitAndExtract(ctx, client, srcBridge, sourceBridgeAddress, tx.Hash(), 0)
 }
 
+// ReadMessageSentFromTx reads a source tx receipt and extracts a specific MessageSent event.
 func ReadMessageSentFromTx(
 	ctx context.Context,
 	client receiptReader,
@@ -315,6 +358,7 @@ func ReadMessageSentFromTx(
 	return evt, receipt, nil
 }
 
+// waitAndExtract waits for a successful receipt and parses MessageSent from logs.
 func waitAndExtract(
 	ctx context.Context,
 	client receiptReader,
@@ -334,6 +378,7 @@ func waitAndExtract(
 	return &SendResult{TxHash: txHash, Receipt: receipt, Event: *evt}, nil
 }
 
+// waitReceipt polls until transaction is mined successfully or context exits.
 func waitReceipt(ctx context.Context, client receiptReader, txHash common.Hash) (*types.Receipt, error) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -358,6 +403,7 @@ func waitReceipt(ctx context.Context, client receiptReader, txHash common.Hash) 
 	}
 }
 
+// parseMessageSentFromReceipt parses MessageSent from source bridge logs by index.
 func parseMessageSentFromReceipt(
 	receipt *types.Receipt,
 	srcBridge *bridgebinding.Bridge,
@@ -393,6 +439,7 @@ func parseMessageSentFromReceipt(
 	return nil, ErrNoMessageSentEvent
 }
 
+// toUint64 validates non-negative bigint values and converts to uint64.
 func toUint64(v *big.Int, field string) (uint64, error) {
 	if v == nil || v.Sign() < 0 {
 		return 0, fmt.Errorf("%s must be >= 0", field)
@@ -403,6 +450,7 @@ func toUint64(v *big.Int, field string) (uint64, error) {
 	return v.Uint64(), nil
 }
 
+// cloneBigIntSlice deep-copies bigint slices used in binding structs.
 func cloneBigIntSlice(in []*big.Int) []*big.Int {
 	out := make([]*big.Int, len(in))
 	for i, v := range in {
