@@ -26,7 +26,7 @@ Choose source/destination RPC endpoints to represent either direction (`L1->L2` 
 ## Command Surface
 
 - Pipeline: `claim-eth`, `claim-erc20`, `claim-erc721`, `claim-erc1155`
-- Low-level: `send-eth`, `send-erc20`, `send-erc721`, `send-erc1155`, `wait-ready`, `claim`, `status`
+- Low-level: `send-eth`, `send-erc20`, `send-erc721`, `send-erc1155`, `check-ready`, `wait-ready`, `claim`, `status`
 - Agent helpers: `agent exit-codes`, `schema`
 - Compatibility aliases: `bridge-eth`, `bridge-erc20`, `bridge-erc721`, `bridge-erc1155`
 

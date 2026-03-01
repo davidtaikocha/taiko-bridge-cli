@@ -32,6 +32,7 @@ func newSchemaCmd(opts *rootOptions) *cobra.Command {
 				"fixed_address_resolution": "By default addresses are auto-selected from source/destination chain IDs for mainnet and hoodi.",
 				"command_outputs": []string{
 					"send-* => tx_hash,msg_hash,source_block",
+					"check-ready => ready,checkpoint_block,progress",
 					"wait-ready => ready,checkpoint_block,proof,progress",
 					"claim => claim_tx_hash,claimed",
 					"claim-* => send+claim pipeline output",

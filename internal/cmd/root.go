@@ -70,6 +70,7 @@ func NewRootCmd() *cobra.Command {
 		newSendERC20Cmd(opts),
 		newSendERC721Cmd(opts),
 		newSendERC1155Cmd(opts),
+		newCheckReadyCmd(opts),
 		newWaitReadyCmd(opts),
 		newClaimCmd(opts),
 		newStatusCmd(opts),
