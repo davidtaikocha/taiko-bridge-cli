@@ -2,12 +2,23 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/davidcai/taiko-bridge-cli/internal/clierr"
 	"github.com/davidcai/taiko-bridge-cli/internal/exitcodes"
 	"github.com/spf13/cobra"
 )
+
+// RootCommandConfig configures command tree I/O and env lookups.
+type RootCommandConfig struct {
+	// Stdout receives command output lines.
+	Stdout io.Writer
+	// Stderr receives command error output.
+	Stderr io.Writer
+	// LookupEnv resolves environment variables used by command runtime.
+	LookupEnv func(string) string
+}
 
 // rootOptions stores global CLI flags shared by all subcommands.
 type rootOptions struct {
@@ -35,11 +46,50 @@ type rootOptions struct {
 	PrivateKeyEnv string
 	// Format controls output formatting.
 	Format string
+	// Stdout receives command output lines.
+	Stdout io.Writer
+	// Stderr receives command error output.
+	Stderr io.Writer
+	// LookupEnv resolves environment variables used by command runtime.
+	LookupEnv func(string) string
+}
+
+// stdoutWriter returns configured stdout fallbacking to os.Stdout.
+func (o *rootOptions) stdoutWriter() io.Writer {
+	if o != nil && o.Stdout != nil {
+		return o.Stdout
+	}
+	return os.Stdout
+}
+
+// stderrWriter returns configured stderr fallbacking to os.Stderr.
+func (o *rootOptions) stderrWriter() io.Writer {
+	if o != nil && o.Stderr != nil {
+		return o.Stderr
+	}
+	return os.Stderr
+}
+
+// getEnv resolves environment values using configured lookup fallbacking to os.Getenv.
+func (o *rootOptions) getEnv(key string) string {
+	if o != nil && o.LookupEnv != nil {
+		return o.LookupEnv(key)
+	}
+	return os.Getenv(key)
 }
 
 // NewRootCmd builds the top-level bridge-cli cobra command.
 func NewRootCmd() *cobra.Command {
-	opts := &rootOptions{}
+	return NewRootCmdWithConfig(RootCommandConfig{})
+}
+
+// NewRootCmdWithConfig builds the top-level bridge-cli cobra command with injected runtime config.
+func NewRootCmdWithConfig(cfg RootCommandConfig) *cobra.Command {
+	opts := &rootOptions{
+		Stdout:    cfg.Stdout,
+		Stderr:    cfg.Stderr,
+		LookupEnv: cfg.LookupEnv,
+	}
 
 	rootCmd := &cobra.Command{
 		Use:           "bridge-cli",
@@ -47,6 +97,8 @@ func NewRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}
+	rootCmd.SetOut(opts.stdoutWriter())
+	rootCmd.SetErr(opts.stderrWriter())
 
 	rootCmd.PersistentFlags().StringVar(&opts.SrcRPCURL, "src-rpc", "", "Source RPC URL")
 	rootCmd.PersistentFlags().StringVar(&opts.DstRPCURL, "dst-rpc", "", "Destination RPC URL")

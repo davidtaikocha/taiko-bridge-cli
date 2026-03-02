@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/davidcai/taiko-bridge-cli/internal/outfmt"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +11,7 @@ func newSchemaCmd(opts *rootOptions) *cobra.Command {
 		Use:   "schema",
 		Short: "Print flag and output schema",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			p := outfmt.Printer{Format: opts.Format, Out: os.Stdout}
+			p := outfmt.Printer{Format: opts.Format, Out: opts.stdoutWriter()}
 			return p.Emit(map[string]any{
 				"required_flags": map[string]string{
 					"--src-rpc":                       "string",

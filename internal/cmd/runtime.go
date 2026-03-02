@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"os"
 	"strings"
 
 	bridgebinding "github.com/davidcai/taiko-bridge-cli/internal/bindings/bridge"
@@ -191,11 +190,11 @@ func loadRuntime(ctx context.Context, opts *rootOptions) (*runtime, error) {
 
 	pk := strings.TrimSpace(opts.PrivateKey)
 	if pk == "" && strings.TrimSpace(opts.PrivateKeyEnv) != "" {
-		pk = strings.TrimSpace(os.Getenv(strings.TrimSpace(opts.PrivateKeyEnv)))
+		pk = strings.TrimSpace(opts.getEnv(strings.TrimSpace(opts.PrivateKeyEnv)))
 	}
 
 	return &runtime{
-		Printer:           outfmt.Printer{Format: opts.Format, Out: os.Stdout},
+		Printer:           outfmt.Printer{Format: opts.Format, Out: opts.stdoutWriter()},
 		SrcClient:         srcClient,
 		DstClient:         dstClient,
 		SrcBridgeAddress:  srcBridgeAddr,

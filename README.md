@@ -2,6 +2,15 @@
 
 Agent-friendly CLI for Taiko Native Bridge ETH/ERC20/ERC721/ERC1155 flows.
 
+## Library Runner API
+
+`taiko-bridge-cli` also exposes an in-process runner API for other Go services:
+
+- Package: `github.com/davidcai/taiko-bridge-cli/pkg/runner`
+- Entry points: `runner.NewRunner()`, `(*Runner).Run(ctx, req)`
+- Streaming callbacks: `OnProgress`, `OnEvent`
+- Result contract: `ExitCode`, `FinalPayload`, `ProgressLast`, `Stderr`, timing fields
+
 ## Build
 
 ```bash

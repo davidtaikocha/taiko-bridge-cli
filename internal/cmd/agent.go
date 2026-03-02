@@ -12,7 +12,7 @@ func newAgentCmd(opts *rootOptions) *cobra.Command {
 		Use:   "exit-codes",
 		Short: "Print CLI exit code schema",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return printJSON(opts.Format, map[string]any{
+			return printJSON(opts.Format, opts.stdoutWriter(), map[string]any{
 				"ok":                 exitcodes.OK,
 				"config_error":       exitcodes.ConfigError,
 				"validation_error":   exitcodes.Validation,
